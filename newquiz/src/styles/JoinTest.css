@@ -1,0 +1,246 @@
+.join-test-container {
+  min-height: 100vh;
+  height: 100;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.join-test-image-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #ffffff;
+}
+
+.full-page-image {
+  max-width: 100%;
+  max-height: 90vh;
+  height: auto;
+  border-radius: 20px;
+  transition: transform 0.3s ease;
+  object-fit: contain;
+}
+
+.join-test-content {
+  flex: 1;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  max-width: 600px;
+  margin: 2rem auto;
+  height: calc(100vh - 4rem);
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.join-test-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-top: 1rem;
+}
+
+.join-test-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+}
+
+.join-test-icon svg {
+  font-size: 2rem;
+  color: white;
+}
+
+.join-test-content h1 {
+  color: #0f172a;
+  font-size: 2.25rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #334155;
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.join-test-form {
+  margin-bottom: 2.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  color: #0f172a;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.input-container {
+  position: relative;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  background-color: white;
+  color: #0f172a;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  background-color: white;
+}
+
+.form-group input.error {
+  border-color: #ef4444;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.loading-spinner {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+.join-button {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.join-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
+}
+
+.join-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.test-info {
+  background-color: #f8fafc;
+  padding: 2rem;
+  border-radius: 1rem;
+  margin-top: 2.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.test-info h2 {
+  color: #1e293b;
+  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.info-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.info-card {
+  background-color: white;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.info-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  background-color: #f0f9ff;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+  color: #3b82f6;
+  font-size: 1.25rem;
+}
+
+.info-card p {
+  color: #475569;
+  font-weight: 500;
+  margin: 0;
+}
+
+.join-test-footer {
+  text-align: center;
+  margin-top: 2rem;
+  color: #64748b;
+}
+
+.join-test-footer a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.join-test-footer a:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}

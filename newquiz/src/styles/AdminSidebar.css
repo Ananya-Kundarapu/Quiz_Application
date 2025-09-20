@@ -1,0 +1,156 @@
+
+.sidebar {
+    width: 250px;
+    background-color: #ffffff;
+    padding: 20px;
+    color: #696F79;
+    flex-shrink: 0;
+    position: fixed;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+  }
+  
+  .logo-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    margin-top: 5px;
+  }
+  
+  .logo {
+    width: 180px;
+    height: 60px;
+    object-fit: contain;
+  }
+  
+  .sidebar ul {
+    list-style: none;
+    padding: 0;
+    width: 100%;
+  }
+  
+  .sidebar li {
+    margin: 15px 0;
+  }
+  
+  .sidebar li a {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    color: #696F79;
+    text-decoration: none;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: background-color 0.3s, color 0.3s;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .sidebar li a .icon {
+    margin-right: 10px;
+    color: #696F79;
+  }
+  
+  .sidebar li a:hover {
+    background-color: #e6e6e6;
+    color: #1935CA;
+  }
+  
+  .sidebar li.active a {
+    background-color: #1935CA;
+    color: #FFFFFF;
+  }
+  
+  .sidebar li.active a .icon {
+    color: #FFFFFF;
+  }
+  
+
+  .support-logout {
+    width: 210px;
+    margin-top: auto;
+  }
+  
+  .support {
+    position: relative;
+    margin-bottom: 15px;
+  }
+  
+  .support-image {
+    width: 100%;
+    height: auto;
+    max-height: 190px;
+    object-fit: contain;
+    border-radius: 6px;
+    display: block;
+    margin-bottom: 10px;
+  }
+  
+  
+  .support-start-button {
+    position: absolute;
+    left: 38%;
+    bottom: 102px;
+    transform: translateX(-50%);
+    padding: 4px 10px;
+    background-color: #FFFFFF;
+    color: #1935CA;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.80rem;
+    font-weight: 600;
+  }
+  
+  /* Logout Button */
+  .logout-button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    background-color: transparent;
+    border: none;
+    color: #696F79;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .logout-button .icon {
+    margin-right: 10px;
+    color: #696F79;
+  }
+  
+  .logout-button:hover {
+    background-color: #ff0000;
+    color: #FFFFFF;
+  }
+  
+  .logout-button:hover .icon {
+    color: #FFFFFF;
+  }
+  .logout-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(255, 0, 0, 0.85);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 10000;
+  user-select: none;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+  font-family: 'Poppins', sans-serif;
+  white-space: nowrap;
+}
+
