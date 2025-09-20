@@ -138,13 +138,3 @@ git push origin feature-name
 6. Submit a pull request with a clear description of your changes.
 
 ---
-
-**Repository:** [https://github.com/Ananya-Kundarapu/Quiz\_Application](https://github.com/Ananya-Kundarapu/Quiz_Application)
-
-```
-
----
-
-
-Do you want me to do that next?
-```
