@@ -55,61 +55,96 @@ Built with the **MERN stack (MongoDB, Express, React, Node.js)** and designed fo
 ```bash
 git clone https://github.com/Ananya-Kundarapu/Quiz_Application.git
 cd Quiz_Application
+````
+
 ### **2. Install Dependencies**
+
 ```bash
 npm install
-3. Configure Environment Variables
-Create a .env file in the root directory and add the following:
+```
 
+### **3. Configure Environment Variables**
+
+Create a `.env` file in the root directory and add the following:
+
+```env
 PORT=5000
 MONGO_URI=<your_mongodb_connection_string>
 JWT_SECRET=<your_jwt_secret_key>
-Note: Replace <your_mongodb_connection_string> with your MongoDB Atlas or local connection string and <your_jwt_secret_key> with a strong, random string.
+```
 
-4. Run the Application
-Bash
+> Replace `<your_mongodb_connection_string>` with your MongoDB Atlas or local connection string and `<your_jwt_secret_key>` with a strong, random string.
 
+### **4. Run the Application**
+
+```bash
 npm run dev
-This command is configured to run both the frontend and backend simultaneously.
+```
 
-🧑‍💻 Usage
-Admin Actions
-Navigate to /admin-courses to manage quizzes.
+> This command runs both the frontend and backend simultaneously.
 
-Create quizzes by specifying a title, description, time limit, and available branches.
+---
 
-Use the publish/unpublish toggle to control student access.
+## 🧑‍💻 Usage
 
-Set start and end dates to automate quiz availability.
+### **Admin Actions**
 
-View quiz analytics on the dashboard to monitor performance.
+* Navigate to `/admin-courses` to manage quizzes.
+* Create quizzes by specifying a title, description, time limit, and available branches.
+* Use the publish/unpublish toggle to control student access.
+* Set start and end dates to automate quiz availability.
+* View quiz analytics on the dashboard to monitor performance.
 
-Student Actions
-Browse and filter courses on the home page.
+### **Student Actions**
 
-Start a quiz and submit answers in real-time.
+* Browse and filter courses on the home page.
+* Start a quiz and submit answers in real-time.
+* Check your progress and view a summary of your performance.
+* Access your quiz history and view your ranking on the leaderboard.
 
-Check your progress and view a summary of your performance.
+---
 
-Access your quiz history and view your ranking on the leaderboard.
+## 🚀 Deployment
 
-🚀 Deployment
-The application can be deployed on platforms like Vercel (for the frontend) and Render or Heroku (for the backend).
+* The application can be deployed on platforms like **Vercel** (frontend) and **Render** or **Heroku** (backend).
+* Ensure environment variables on the deployment platform match your local `.env` file.
 
-Make sure to configure the environment variables on the deployment platform to match your .env file.
+---
 
-🤝 Contributing
-Contributions are welcome! If you'd like to contribute, please follow these steps:
+## 🤝 Contributing
 
-Fork the repository.
+Contributions are welcome! Follow these steps:
 
-Create a new branch for your feature or bug fix (git checkout -b feature-name).
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix:
 
-Make your changes and test them thoroughly.
+```bash
+git checkout -b feature-name
+```
 
-Commit your changes (git commit -m 'Add new feature').
+3. Make your changes and test thoroughly.
+4. Commit your changes:
 
-Push to the branch (git push origin feature-name).
+```bash
+git commit -m "Add new feature"
+```
 
-Submit a pull request with a clear description of your changes.
+5. Push to your branch:
 
+```bash
+git push origin feature-name
+```
+
+6. Submit a pull request with a clear description of your changes.
+
+---
+
+**Repository:** [https://github.com/Ananya-Kundarapu/Quiz\_Application](https://github.com/Ananya-Kundarapu/Quiz_Application)
+
+```
+
+---
+
+
+Do you want me to do that next?
+```
