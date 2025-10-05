@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import '../styles/QuizHistory.css'; // Reusing same styles
+import '../styles/QuizHistory.css';
 
 function ReviewCustomQuiz() {
   const location = useLocation();

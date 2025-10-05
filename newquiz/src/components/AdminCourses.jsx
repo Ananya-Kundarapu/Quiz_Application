@@ -3,6 +3,7 @@ import '../styles/AdminCourses.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FiClipboard } from 'react-icons/fi';
 import Leaderboard from './Leaderboard';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function AdminCourses() {
   const [myCourses, setMyCourses] = useState([]);
@@ -34,10 +35,10 @@ const contextMenuRef = useRef();
           return;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 300)); // optional delay
+        await new Promise((resolve) => setTimeout(resolve, 300));
 
-        const res = await fetch('http://localhost:5000/api/quizzes/my-quizzes', {
-          method: 'GET',
+ const res = await fetch(`${API_URL}/api/quizzes/my-quizzes`, {
+            method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
@@ -65,7 +66,7 @@ if (res.ok) {
     const token = sessionStorage.getItem('token');
     const quizzesWithCounts = await Promise.all(quizzes.map(async (quiz) => {
         const identifier = quiz.isCustom ? quiz.code : quiz.id; 
-        const analyticsRes = await fetch(`http://localhost:5000/api/results/${identifier}/analytics`, {
+            const analyticsRes = await fetch(`${API_URL}/api/results/${identifier}/analytics`, {
             headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -134,8 +135,7 @@ if (res.ok) {
     if (!window.confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) return;
     try {
       const token = sessionStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/quizzes/${quizId}`, {
-  method: 'DELETE',
+      const res = await fetch(`${API_URL}/api/quizzes/${quizId}`, {  method: 'DELETE',
   headers: {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
@@ -342,7 +342,7 @@ if (selectedQuiz.isCustom) {
       if (!confirmUnpublish) return;
     }
     try {
-    const response = await fetch(`http://localhost:5000/api/quizzes/${selectedQuiz.id}/toggle-publish`, {
+        const response = await fetch(`${API_URL}/api/quizzes/${selectedQuiz.id}/toggle-publish`, { 
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

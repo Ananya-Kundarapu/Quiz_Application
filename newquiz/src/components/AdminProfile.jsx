@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/AdminProfile.css';
 import { useAuth } from '../Context/AuthContext';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function AdminProfile() {
   const { user } = useAuth();
@@ -14,7 +15,7 @@ function AdminProfile() {
   const [quizLoadError, setQuizLoadError] = useState(null);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
-  const backendBase = 'http://localhost:5000';
+  const backendBase = API_URL;
   const isUploadedPic = user?.profilePic?.startsWith('/uploads/');
   const isBlob = user?.profilePic?.startsWith('blob:');
   const profileImage = isUploadedPic
@@ -34,7 +35,7 @@ const headers = user?.token
   : {};
 
 
-    fetch('/api/admin/total-users', { headers })
+    fetch(`${backendBase}/api/admin/total-users`, { headers })
       .then(res => {
         if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         return res.json();

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaKeyboard } from 'react-icons/fa';
 import '../styles/JoinTest.css';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function JoinTest() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ function JoinTest() {
         throw new Error('You must be logged in to join a test');
       }
 
-      const response = await fetch(`http://localhost:5000/api/quizzes/code/${testCode.trim()}`, {
+      const response = await fetch(`${API_URL}/api/quizzes/code/${testCode.trim()}`, { 
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

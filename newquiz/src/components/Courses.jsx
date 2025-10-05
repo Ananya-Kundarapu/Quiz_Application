@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { FiClipboard, FiTrash2, FiFilter } from 'react-icons/fi';
 import defaultQuestionsData from '../components/DefaultQuiz';
 import { useAuth } from '../Context/AuthContext';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function Courses() {
   const [courses, setCourses] = useState([]);
@@ -47,11 +48,10 @@ useEffect(() => {
 
 try {
   const headers = { Authorization: `Bearer ${token}` };
-
-  const [liveRes, customRes] = await Promise.all([
-    fetch('http://localhost:5000/api/quizzes/student-live-quizzes', { headers }),
-    fetch('http://localhost:5000/api/quizzes/my-custom-quizzes', { headers }),
-  ]);
+const [liveRes, customRes] = await Promise.all([
+    fetch(`${API_URL}/api/quizzes/student-live-quizzes`, { headers }), 
+    fetch(`${API_URL}/api/quizzes/my-custom-quizzes`, { headers }), 
+  ]);
       if (!liveRes.ok || !customRes.ok) {
         throw new Error('Server responded with an error for one or more requests.');
       }
@@ -407,8 +407,8 @@ if (selectedQuiz.isCustom) {
         onClick={async () => {
           if (!selectedQuiz) return;
           try {
-            const response = await fetch(`http://localhost:5000/api/quizzes/${selectedQuiz._id || selectedQuiz.name}/toggle-publish`, {
-              method: 'PATCH',
+const response = await fetch(`${API_URL}/api/quizzes/${selectedQuiz._id || selectedQuiz.name}/toggle-publish`, {
+                method: 'PATCH',
               headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,

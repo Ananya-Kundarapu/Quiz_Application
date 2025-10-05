@@ -4,6 +4,7 @@ import Cropper from 'react-easy-crop';
 import getCroppedImg from '../utils/cropImage';
 import { useAuth } from '../Context/AuthContext';
 import '../styles/Registration.css';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function Registration() {
   const location = useLocation();
@@ -71,7 +72,7 @@ function Registration() {
     if (role === 'Student' && !branch) return alert('Please select a branch');
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,7 +97,7 @@ function Registration() {
           const formData = new FormData();
           formData.append('profilePic', croppedBlob);
 
-          const uploadRes = await fetch('http://localhost:5000/api/auth/upload-profile-pic', {
+          const uploadRes = await fetch(`${API_URL}/api/auth/upload-profile-pic`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${data.token}`,
@@ -109,7 +110,7 @@ function Registration() {
           if (uploadRes.ok && uploadData.url) {
             const fullURL = uploadData.url.startsWith('http')
               ? uploadData.url
-              : `http://localhost:5000/${uploadData.url.replace(/^\/+/, '')}`;
+              : `${API_URL}/${uploadData.url.replace(/^\/+/, '')}`;
             data.user.profilePic = fullURL;
             setProfilePic(fullURL);
           }
@@ -118,7 +119,6 @@ function Registration() {
         }
       }
 
-      // ✅ Finalize login with updated user
       login(data.user, data.token);
 
       localStorage.setItem('fullName', fullName);

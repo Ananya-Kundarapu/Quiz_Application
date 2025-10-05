@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowUp } from 'react-icons/fa';
 import '../styles/UsersList.css';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function UsersList() {
   const [students, setStudents] = useState([]);
@@ -11,9 +12,9 @@ function UsersList() {
   const navigate = useNavigate();
 
   const fetchUsers = () => {
-    const token = localStorage.getItem('token'); // or sessionStorage
+    const token = localStorage.getItem('token');
 
-    fetch('http://localhost:5000/api/admin/users', {
+    fetch(`${API_URL}/api/admin/users`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: token ? `Bearer ${token}` : '',

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiClipboard } from 'react-icons/fi';
 import { useAuth } from '../Context/AuthContext'; // ✅ use Auth context
 import '../styles/Profile.css';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function Profile() {
   const [quizHistory, setQuizHistory] = useState([]);
@@ -14,7 +15,7 @@ function Profile() {
   const navigate = useNavigate();
 const { user, loading: authLoading } = useAuth(); 
   const fullName = user?.fName + ' ' + user?.lName || 'User';
-const backendBase = 'http://localhost:5000';
+const backendBase = API_URL; 
 const profileImage = user?.profilePic?.startsWith('/uploads/')
   ? `${backendBase}${user.profilePic}`
   : user?.profilePic || '/profile.png';
@@ -29,8 +30,8 @@ useEffect(() => {
         setQuizHistory([]);
         return;
       }
-      const res = await fetch('http://localhost:5000/api/results/user/history', {
-        headers: {
+const res = await fetch(`${API_URL}/api/results/user/history`, { 
+          headers: {
           Authorization: `Bearer ${token}`,
         },
       });
@@ -98,8 +99,7 @@ const handleJoinQuiz = async () => {
     if (!token) throw new Error('You must be logged in to join a quiz.');
 
     const res = await fetch(
-      `http://localhost:5000/api/quizzes/code/${joinCode.trim().toUpperCase()}`,
-      {
+`${API_URL}/api/quizzes/code/${joinCode.trim().toUpperCase()}`,      {
         headers: { Authorization: `Bearer ${token}` },
       }
     );

@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import '../styles/QuizHistory.css';
-
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 function QuizHistory() {
@@ -21,7 +21,7 @@ const { token } = useAuth();
 useEffect(() => {
   const fetchHistory = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/results/user/history", {
+      const res = await axios.get(`${API_URL}/api/results/user/history`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHistory(res.data.map(entry => ({

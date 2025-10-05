@@ -49,10 +49,8 @@ const renderNavLinks = () => {
 
   const handleNav = (path) => {
     if (!user) {
-      // User not logged in → go to login page
       navigate('/login', { state: { message: 'Please login to continue.' } });
     } else {
-      // User logged in → go to desired path
       navigate(path);
     }
     closeMenu();

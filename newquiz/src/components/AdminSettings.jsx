@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/AdminSettings.css';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function AdminSettings() {
   const [activeTab, setActiveTab] = useState('students');
@@ -13,7 +14,6 @@ function AdminSettings() {
 
   const BRANCHES = ['CSE', 'CSM', 'CSO', 'IT', 'ECE', 'ME', 'CE', 'EE'];
 
-  // Decode JWT
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -26,7 +26,6 @@ function AdminSettings() {
     }
   }, []);
 
-  // Fetch users
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
@@ -39,7 +38,7 @@ function AdminSettings() {
         ...(token && { Authorization: `Bearer ${token}` }),
       };
 
-      const res = await fetch(`http://localhost:5000/api/users?role=${role}`, { headers });
+const res = await fetch(`${API_URL}/api/users?role=${role}`, { headers }); 
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       setUsers(data);
@@ -91,7 +90,7 @@ function AdminSettings() {
         ...(token && { Authorization: `Bearer ${token}` }),
       };
 
-      const res = await fetch(`http://localhost:5000/api/users/${id}`, {
+        const res = await fetch(`${API_URL}/api/users/${id}`, { 
         method: 'DELETE',
         headers,
       });

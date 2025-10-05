@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import '../styles/SignUp.css';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function Signup() {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ function Signup() {
     if (hasError) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/check', {
+      const res = await fetch(`${API_URL}/api/auth/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

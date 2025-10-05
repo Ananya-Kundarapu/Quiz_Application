@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import "../styles/Leaderboard.css";
 import { useAuth } from "../Context/AuthContext";
 import { useParams} from "react-router-dom";
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function Leaderboard() {
   const { user } = useAuth();
@@ -103,9 +104,9 @@ useEffect(() => {
 
 let endpoint;
 if (quizCode) {
-  endpoint = `http://localhost:5000/api/results/custom/leaderboard/${quizCode}`;
+  endpoint = `${API_URL}/api/results/custom/leaderboard/${quizCode}`;
 } else if (quizId) {
-  endpoint = `http://localhost:5000/api/results/${quizId}/leaderboard`;
+  endpoint = `${API_URL}/api/results/${quizId}/leaderboard`;
 } else {
   console.error("No valid quizId or quizCode to fetch leaderboard");
   return;
@@ -180,10 +181,10 @@ const handleViewAnswers = async (index) => {
     const token = user?.token;
     const resultId = sortedLeaderboard[index]._id;
 const endpoint = quizCode
-  ? `http://localhost:5000/api/results/custom/result/${resultId}` // custom quiz
-  : `http://localhost:5000/api/results/${resultId}`; // live quiz
+  ? `${API_URL}/api/results/custom/result/${resultId}`
+  : `${API_URL}/api/results/${resultId}`;
 
-    const res = await fetch(endpoint, {
+    const res = await fetch(endpoint, {
       headers: { Authorization: `Bearer ${token}` },
     });
 

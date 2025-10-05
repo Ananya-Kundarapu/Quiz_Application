@@ -7,6 +7,7 @@ import { useAuth } from '../Context/AuthContext';
 import axios from 'axios'; 
 import { useMemo } from 'react'; 
 import { nanoid } from 'nanoid'; 
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 function Quiz() {
 const location = useLocation();
@@ -204,11 +205,11 @@ useEffect(() => {
   const fetchLiveQuiz = async () => {
     if (!token || authLoading) return;
     try {
-      const endpoint = quizCode
-        ? `http://localhost:5000/api/quizzes/code/${quizCode}`
-        : `http://localhost:5000/api/quizzes/${quizId}`;
+const endpoint = quizCode
+        ? `${API_URL}/api/quizzes/code/${quizCode}`
+        : `${API_URL}/api/quizzes/${quizId}`;
 
-      const res = await fetch(endpoint, {
+      const res = await fetch(endpoint, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -273,8 +274,7 @@ const fetchCustomQuiz = async () => {
   } else {
     try {
       console.log(`🔍 Fetching saved custom quiz ID: ${quizId}`);
-      const res = await axios.get(`http://localhost:5000/api/quizzes/${quizId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+const res = await axios.get(`${API_URL}/api/quizzes/${quizId}`,{        headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });
       const quiz = res.data.quiz || res.data;
@@ -507,7 +507,7 @@ if (!token) {
 }
 
 const res = await axios.post(
-  `http://localhost:5000/api/results/custom/submit`,
+ `${API_URL}/api/results/custom/submit`,
   postBody,
   {
     headers: {
@@ -552,8 +552,7 @@ if (!token) {
 }
 
 const res = await axios.post(
-  `http://localhost:5000/api/results/${submitQuizId}/submit`,
-  {
+ `${API_URL}/api/results/${submitQuizId}/submit`,  {
     answers: payload.answers.map(a => ({
       questionId: a.questionId,
       selectedOption: a.selectedOption,

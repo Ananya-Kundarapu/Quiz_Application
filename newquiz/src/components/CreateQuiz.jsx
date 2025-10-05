@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/CreateQuiz.css';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
 
 const BRANCHES = ['CSE', 'CSM', 'CSO', 'IT', 'ECE', 'ME', 'CE', 'EE'];
 
@@ -38,7 +39,7 @@ function CreateQuiz() {
 
   const fetchQuizData = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/quizzes/${id}`, {
+      const res = await fetch(`${API_URL}/api/quizzes/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -184,7 +185,7 @@ if (isAdmin && selectedBranches.length === 0) {
       console.log('Submitting quiz data:', quizData);  
       let res, data;
       if (isEditing && editQuizId) {
-        res = await fetch(`http://localhost:5000/api/quizzes/${editQuizId}`, {
+        res = await fetch(`${API_URL}/api/quizzes/${editQuizId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -195,7 +196,7 @@ if (isAdmin && selectedBranches.length === 0) {
         data = await res.json();
       } else {
         quizData.code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        res = await fetch('http://localhost:5000/api/quizzes/create', {
+        res = await fetch(`${API_URL}/api/quizzes/create`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

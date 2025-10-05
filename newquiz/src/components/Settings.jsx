@@ -4,6 +4,8 @@ import '../styles/Settings.css';
 import { useAuth } from '../Context/AuthContext';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../utils/cropImage';
+const API_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:5000';
+const defaultImage = '/profile.png';
 
 function Settings() {
 const { user, loading: authLoading, setUser } = useAuth();
@@ -43,7 +45,7 @@ useEffect(() => {
       password: ''
     });
 if (user.profilePic) {
-  setProfileImage(`http://localhost:5000${user.profilePic}?t=${Date.now()}`);
+  setProfileImage(`${API_URL}${user.profilePic}?t=${Date.now()}`);
 } else {
   setProfileImage(defaultImage + `?t=${Date.now()}`);
 }
@@ -83,8 +85,7 @@ const handleCropAndUpload = async () => {
     const formData = new FormData();
     formData.append('profilePic', blob, 'profile.jpg');
 
-const res = await fetch(`http://localhost:5000/api/auth/upload-profile-pic`, {
-  method: 'POST',
+const res = await fetch(`${API_URL}/api/auth/upload-profile-pic`, {  method: 'POST',
   headers: {
     Authorization: `Bearer ${localStorage.getItem('token')}`, // keep only this
   },
@@ -97,7 +98,7 @@ const res = await fetch(`http://localhost:5000/api/auth/upload-profile-pic`, {
     }
 
 const data = await res.json();
-const newProfilePicUrl = `http://localhost:5000${data.profilePic}?t=${Date.now()}`;
+const newProfilePicUrl = `${API_URL}${data.profilePic}?t=${Date.now()}`;
 setProfileImage(newProfilePicUrl);
 setUser(prev => ({ ...prev, profilePic: data.profilePic }));
 
@@ -115,8 +116,8 @@ const handleRemoveProfilePic = async () => {
   if (!user?._id) return;
 
   try {
-    const res = await fetch(`http://localhost:5000/api/auth/remove-profile-pic`, {
-      method: 'POST',
+      const res = await fetch(`${API_URL}/api/auth/remove-profile-pic`, { 
+     method: 'POST',
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
@@ -128,9 +129,7 @@ const handleRemoveProfilePic = async () => {
     }
 
     const data = await res.json();
-    // ✅ Important: use returned profilePic from backend
-    setProfileImage(`http://localhost:5000${data.profilePic}?t=${Date.now()}`);
-    setUser(prev => ({ ...prev, profilePic: data.profilePic }));
+    setProfileImage(`${API_URL}${data.profilePic}?t=${Date.now()}`);    setUser(prev => ({ ...prev, profilePic: data.profilePic }));
     setError('');
     setShowNotification(true);
   } catch (err) {
@@ -180,8 +179,7 @@ const handleSaveChanges = async () => {
   }
 
   try {
-const res = await fetch(`http://localhost:5000/api/auth/update`, {
-  method: 'PUT',
+const res = await fetch(`${API_URL}/api/auth/update`, {  method: 'PUT',
   headers: {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${localStorage.getItem('token')}`
