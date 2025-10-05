@@ -30,11 +30,11 @@ app.use(cors({
 connectDB();
 
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-app.use('/auth', authRoutes);
-app.use('/quizzes', quizzesRoutes);
-app.use('/users', userRoutes);
-app.use('/results', resultsRoutes);
-app.use('/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/quizzes', quizzesRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/results', resultsRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/admin/hello', (req, res) => {
   res.send('👋 Hello Admin!');
