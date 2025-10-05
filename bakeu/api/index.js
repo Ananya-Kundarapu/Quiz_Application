@@ -14,7 +14,11 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 app.use(cors({
-  origin: '*', 
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:5174', 
+    'https://quizzify-app-mu.vercel.app' 
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS','PATCH'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
