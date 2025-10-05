@@ -1,3 +1,4 @@
+
 {
   "version": 2,
   "builds": [
@@ -10,6 +11,20 @@
     {
       "src": "/api/(.*)",
       "dest": "api/index.js" 
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { 
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://quizzify-app-mu.vercel.app" 
+        },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" }
+      ]
     }
   ]
 }
