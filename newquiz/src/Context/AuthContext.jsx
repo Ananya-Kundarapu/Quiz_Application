@@ -11,41 +11,37 @@ export const AuthProvider = ({ children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const storedToken = sessionStorage.getItem('token');
-    const storedUser = sessionStorage.getItem('user');
+useEffect(() => {
+  const storedUser = sessionStorage.getItem('user');
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
+  if (storedUser) {
+    const parsedUser = JSON.parse(storedUser);
+    setUser(parsedUser);
+    setToken(parsedUser.token || null); 
+  }
 
-    setIsLoading(false);
-  }, []);
+  setIsLoading(false);
+}, []);
 
-  // ✅ Login handler
-  const login = (userData, token) => {
-    setUser(userData);
-    setToken(token);
-    sessionStorage.setItem('token', token);
-    sessionStorage.setItem('user', JSON.stringify(userData));
-  };
+
+const login = (userData, token) => {
+  const userWithToken = { ...userData, token };
+  setUser(userWithToken);
+  setToken(token); 
+  sessionStorage.setItem('token', token);
+  sessionStorage.setItem('user', JSON.stringify(userWithToken)); 
+};
 
   const logout = () => {
-  setIsLoggingOut(true); // Trigger "Logging out..." state
-
-  // Defer session/user clearing to align with the delay
+  setIsLoggingOut(true); 
   setTimeout(() => {
-    // ✅ First: Clear session and state (this prevents header from showing)
     sessionStorage.clear();
     setUser(null);
     setToken(null);
-
-    // ✅ Then navigate after state is cleared (prevents SignUp flash)
     navigate('/', { replace: true });
 
-    setIsLoggingOut(false); // Reset logout state
-  }, 2000); // Wait for 2s to show "Logging out..."
+    setIsLoggingOut(false);
+  }, 2000); 
 };
 
   return (

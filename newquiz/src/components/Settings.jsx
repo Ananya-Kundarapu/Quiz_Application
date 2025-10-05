@@ -4,6 +4,7 @@ import '../styles/Settings.css';
 import { useAuth } from '../Context/AuthContext';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../utils/cropImage';
+
 function Settings() {
 const { user, loading: authLoading, setUser } = useAuth();
 const [profileImage, setProfileImage] = useState('/profile.png');
@@ -25,11 +26,11 @@ const [croppedBlob, setCroppedBlob] = useState(null);
 const [accountDetails, setAccountDetails] = useState({
   firstName: '',
   lastName: '',
-  phone: '', // Changed to phone
+  phone: '', 
   country: '',
   password: ''
 });
-const [error, setError] = useState(''); // New state for error messages
+const [error, setError] = useState(''); 
 const navigate = useNavigate();
 
 useEffect(() => {
@@ -526,7 +527,7 @@ return (
             <label>Privacy Policy</label>
             <p>Read our privacy policy</p>
           </div>
-          <button>View</button>
+<button onClick={() => navigate('/privacy-policy')}>View</button>
         </div>
         <div className="setting">
           <div>

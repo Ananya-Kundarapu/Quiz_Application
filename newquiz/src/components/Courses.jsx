@@ -3,6 +3,7 @@ import '../styles/Courses.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FiClipboard, FiTrash2, FiFilter } from 'react-icons/fi';
 import defaultQuestionsData from '../components/DefaultQuiz';
+import { useAuth } from '../Context/AuthContext';
 
 function Courses() {
   const [courses, setCourses] = useState([]);
@@ -15,9 +16,12 @@ function Courses() {
   const [loadingLiveQuizzes, setLoadingLiveQuizzes] = useState(true);
   const [activeModal, setActiveModal] = useState(null); 
   const [pendingQuiz, setPendingQuiz] = useState(null);
+const [studentQuizzes, setStudentQuizzes] = useState([]);
+const [loadingStudentQuizzes, setLoadingStudentQuizzes] = useState(true);
 
   const navigate = useNavigate();
   const location = useLocation();
+const { token, user } = useAuth();
 
   const defaultCourses = [
   { name: 'Physics', description: 'Understand motion, energy, and the universe.', image: '/phy.jpg', questions: defaultQuestionsData['Physics'].length, timeLimit: 15 },
@@ -29,63 +33,81 @@ function Courses() {
 ];
 
 useEffect(() => {
-  const custom = JSON.parse(localStorage.getItem('customQuizzes') || '[]');
-  const formattedCustom = custom.reverse().map((quiz) => ({
-    ...quiz,
-    image: '/groupq.jpg',
-    isCustom: true,
-  }));
-  setCourses([...formattedCustom, ...defaultCourses]);
-
-  const token = localStorage.getItem('token');
-  const userData = JSON.parse(localStorage.getItem('user') || '{}');
-  const userBranch = userData?.branch || '';
-  if (!token) {
-    console.error('No auth token found');
-    setLoadingLiveQuizzes(false);
-    return;
-  }
-
-  setLoadingLiveQuizzes(true); // Start loading
-
-  fetch('http://localhost:5000/api/quizzes/live', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  })
-    .then(async (res) => {
-      if (!res.ok) throw new Error('Failed to fetch live quizzes');
-      const data = await res.json();
-      console.log('Live Quizzes Data from API:', data); // Log API response
-      setLiveQuizzes(data); // Update state
-      console.log('Live Quizzes State After Update:', data); // Log the new state data
-    })
-    .catch((err) => {
-      console.error('Fetch error:', err);
-      setLiveQuizzes([]);
-    })
-    .finally(() => {
+  const fetchAllQuizzes = async () => {
+    if (!token) {
+      console.warn('No token found. Aborting quiz fetch.');
       setLoadingLiveQuizzes(false);
-    });
-}, [location]);
-
-useEffect(() => {
-  const custom = JSON.parse(localStorage.getItem('customQuizzes') || '[]');
-  const formattedCustom = custom.reverse().map((quiz) => ({
-    ...quiz,
-    image: '/groupq.jpg',
-    isCustom: true,
-  }));
-
-  if (location.state?.reopenPopupFor) {
-    const quizToOpen = formattedCustom.find((q) => q.name === location.state.reopenPopupFor);
-    if (quizToOpen) {
-      setSelectedQuiz(quizToOpen);
-      setShowPopup(true);
+      setLoadingStudentQuizzes(false);
+      return;
     }
-  }
-}, [location]);
+
+    setCourses([...defaultCourses]);
+    setLoadingLiveQuizzes(true);
+    setLoadingStudentQuizzes(true);
+
+try {
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const [liveRes, customRes] = await Promise.all([
+    fetch('http://localhost:5000/api/quizzes/student-live-quizzes', { headers }),
+    fetch('http://localhost:5000/api/quizzes/my-custom-quizzes', { headers }),
+  ]);
+      if (!liveRes.ok || !customRes.ok) {
+        throw new Error('Server responded with an error for one or more requests.');
+      }
+
+      const liveData = await liveRes.json();
+      const customData = await customRes.json();
+
+      if (Array.isArray(liveData)) {
+        setLiveQuizzes(liveData);
+      } else {
+        console.error('API Error: Live quizzes response is not an array.', liveData);
+        setLiveQuizzes([]);
+      }
+
+if (Array.isArray(customData)) {
+  setStudentQuizzes(
+    customData.reverse().map((quiz) => {
+      // Uniformly parse dates into Date objects or null
+      const parseDate = (d) => {
+        if (!d) return null;
+        try {
+          return new Date(d);
+        } catch {
+          return null;
+        }
+      };
+
+      return {
+        ...quiz,
+        _id: quiz._id || quiz.name,
+        code: quiz.code || 'N/A',
+        image: quiz.image || '/groupq.jpg',
+        isCustom: true,
+        startDate: parseDate(quiz.startDate),
+        endDate: parseDate(quiz.endDate),
+        questions: quiz.questions || [],
+        isPublished: !!quiz.isPublished,
+      };
+    })
+  );
+} else {
+  console.error('API Error: Custom quizzes response is not an array.', customData);
+  setStudentQuizzes([]);
+}
+    } catch (err) {
+      console.error('Failed to fetch quizzes:', err);
+      setLiveQuizzes([]);
+      setStudentQuizzes([]);
+    } finally {
+      setLoadingLiveQuizzes(false);
+      setLoadingStudentQuizzes(false);
+    }
+  };
+
+  fetchAllQuizzes();
+}, [location, token]);
 
 const handleClick = async (quiz) => {
   try {
@@ -139,14 +161,20 @@ const handleClick = async (quiz) => {
     });
   };
 
-  const filteredCourses =
-    filter === 'all'
-      ? [...liveQuizzes, ...courses]
-      : filter === 'custom'
-      ? courses.filter((c) => c.isCustom)
-      : filter === 'live'
-      ? liveQuizzes
-      : courses.filter((c) => !c.isCustom);
+const filteredCourses = (() => {
+  switch (filter) {
+    case 'all':
+      return [...liveQuizzes, ...studentQuizzes, ...courses];
+    case 'custom':
+      return studentQuizzes;
+    case 'live':
+      return liveQuizzes;
+    case 'default':
+      return courses;
+    default:
+      return [...liveQuizzes, ...studentQuizzes, ...courses];
+  }
+})();
 
   return (
     <div
@@ -232,28 +260,53 @@ const handleClick = async (quiz) => {
           {filter === 'custom' || filter === 'all' ? (
             <>
               <h2 style={{ color: '#1935CA' }}>Custom Quizzes</h2>
-              <div className="course-list">
-                {courses.filter((c) => c.isCustom).length === 0 ? (
-                  <p style={{ paddingLeft: '10px' }}>No custom quizzes available.</p>
-                ) : (
-                  courses
-                    .filter((c) => c.isCustom)
-                    .map((course) => (
-                      <div
-                        key={course.name}
-                        className="course-card"
-                        onClick={() => handleClick(course)}
-                        onContextMenu={(e) => handleRightClick(e, course)}
-                      >
-                        <img src={course.image} alt={course.name} className="course-image" />
-                        <div className="course-content">
-                          <h3>{course.name}</h3>
-                          <p>{course.description || 'Custom Quiz created by a user.'}</p>
-                        </div>
-                      </div>
-                    ))
-                )}
-              </div>
+ <div className="course-list">
+  {filteredCourses.filter((q) => q.isCustom).length === 0 ? (
+    <p style={{ paddingLeft: '10px' }}>No custom quizzes available.</p>
+  ) : (
+filteredCourses
+  .filter((q) => q.isCustom)
+  .map((quiz) => (
+    <div
+      key={quiz._id || quiz.name}
+      id={`quiz-${quiz._id || quiz.name}`}
+      className="course-card"
+      onClick={() => handleClick(quiz)}
+      onContextMenu={(e) => handleRightClick(e, quiz)}
+    >
+      <img src={quiz.image || '/groupq.jpg'} alt={quiz.name} className="course-image" />
+
+      <div className="course-content">
+        <h3>{quiz.name}</h3>
+        <p>{quiz.description || 'Custom Quiz created by you.'}</p>
+
+        {quiz.branches && quiz.branches.length > 0 && (
+          <p className="text-xs text-gray-600">
+            Branches: {quiz.branches.join(', ')}
+          </p>
+        )}
+
+<div className="course-meta-inline">
+  <span>From: {quiz.startDate instanceof Date && !isNaN(quiz.startDate) ? quiz.startDate.toLocaleDateString() : 'N/A'}</span>
+  <span>To: {quiz.endDate instanceof Date && !isNaN(quiz.endDate) ? quiz.endDate.toLocaleDateString() : 'N/A'}</span>
+</div>
+
+        <div className="course-meta-labels">
+          <span className="badge">Questions: {quiz.questions?.length || 0}</span>
+          <span className="badge">Duration: {quiz.timeLimit ? `${quiz.timeLimit} mins` : 'N/A'}</span>
+        </div>
+
+        <p className="quiz-status">
+          <strong>Status:</strong>{' '}
+          <span className={quiz.isPublished ? 'status-published' : 'status-unpublished'}>
+            {quiz.isPublished ? 'Published' : 'Not Published'}
+          </span>
+        </p>
+      </div>
+    </div>
+  ))
+  )}
+</div>
             </>
           ) : null}
 
@@ -286,7 +339,6 @@ const handleClick = async (quiz) => {
         </>
       )}
 
-      {/* Context Menu */}
       {contextMenu.visible && (
         <div
           className="custom-context-menu"
@@ -310,77 +362,76 @@ const handleClick = async (quiz) => {
         </div>
       )}
 
-      {/* Quiz Popup */}
-      {showPopup && selectedQuiz && (
-        <div className="quiz-popup-overlay" onClick={() => setShowPopup(false)}>
-          <div className="quiz-popup" onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setShowPopup(false)}>×</button>
-            <h2>Quiz: {selectedQuiz.name}</h2>
+{showPopup && selectedQuiz && (
+  <div className="quiz-popup-overlay" onClick={() => setShowPopup(false)}>
+    <div className="quiz-popup" onClick={(e) => e.stopPropagation()}>
+      <button className="close-btn" onClick={() => setShowPopup(false)}>×</button>
+      <h2>Quiz: {selectedQuiz.name}</h2>
 
-            <div className="invite-section">
-              <label>Quiz Code:</label>
-              <div className="copy-code">
-                <input value={selectedQuiz.code || 'N/A'} readOnly />
-                <FiClipboard
-                  className="copy-icon"
-                  onClick={() => copyToClipboard(selectedQuiz.code)}
-                  title="Copy Code"
-                />
-              </div>
-            </div>
-
-            <h3>Leaderboard</h3>
-            <div className="leaderboard">
-              {getAttempts(selectedQuiz.name).length === 0 ? (
-                <p style={{ fontStyle: 'italic', color: '#888' }}>No one has taken this quiz yet.</p>
-              ) : (
-                getAttempts(selectedQuiz.name).map((entry, index) => {
-                  const correctAnswers = entry.answers.filter(
-                    (ans, i) => ans === selectedQuiz.questions[i]?.correctAnswer
-                  ).length;
-
-                  return (
-                    <div key={index} className="leaderboard-entry">
-                      <p><strong>Participant:</strong> {entry.name || 'Anonymous'}</p>
-                      <p><strong>Score:</strong> {correctAnswers}/{selectedQuiz.questions.length}</p>
-                      <p><strong>Time Taken:</strong> {entry.timeTaken || 'N/A'}</p>
-                      <div className="qa-review">
-                        {selectedQuiz.questions.map((q, i) => (
-                          <div key={i} className="review-question">
-                            <p><strong>Q{i + 1}:</strong> {q.questionText}</p>
-                            <p>
-                              Answered:{' '}
-                              <span style={{ color: entry.answers[i] === q.correctAnswer ? 'green' : 'red' }}>
-                                {entry.answers[i] || '—'}
-                              </span>
-                            </p>
-                            <p>Correct Answer: <span style={{ color: 'green' }}>{q.correctAnswer}</span></p>
-                            <hr />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            <button
-              className="review-btn"
-              onClick={() =>
-                navigate('/custom-quiz-review', {
-                  state: {
-                    course: selectedQuiz.name,
-                    questions: selectedQuiz.questions,
-                  },
-                })
-              }
-            >
-              Review Quiz
-            </button>
-          </div>
+      {/* Quiz Code Section */}
+      <div className="invite-section">
+        <label>Quiz Code:</label>
+        <div className="copy-code">
+          <input value={selectedQuiz.code || 'N/A'} readOnly />
+          <FiClipboard className="copy-icon" onClick={() => copyToClipboard(selectedQuiz.code)} />
         </div>
-      )}
+      </div>
+<button
+  className="leaderboard-btn"
+  onClick={() => {
+    if (!selectedQuiz._id) return;
+if (selectedQuiz.isCustom) {
+  navigate(`/leaderboard/custom/${selectedQuiz.uniqueCode || selectedQuiz.code}`); 
+} else {
+  navigate(`/leaderboard/${selectedQuiz._id}`);
+}
+  }}
+>
+  View Leaderboard
+</button>
+
+      <p style={{ fontStyle: 'italic', color: '#555', marginTop: '8px', marginLeft: '18px' }}>
+        {getAttempts(selectedQuiz.name).length > 0
+          ? `${getAttempts(selectedQuiz.name).length} ${getAttempts(selectedQuiz.name).length === 1 ? 'student has' : 'students have'} taken this quiz.`
+          : 'No one has taken this quiz yet.'}
+      </p>
+
+      {/* Edit Button */}
+      <button className="edit-btn" onClick={() => navigate('/create-quiz', { state: { editQuizId: selectedQuiz._id || selectedQuiz.name } })}>
+        Edit Quiz
+      </button>
+
+      {/* Publish Toggle */}
+      <button
+        className={`publish-toggle-btn ${selectedQuiz.isPublished ? 'unpublish' : 'publish'}`}
+        onClick={async () => {
+          if (!selectedQuiz) return;
+          try {
+            const response = await fetch(`http://localhost:5000/api/quizzes/${selectedQuiz._id || selectedQuiz.name}/toggle-publish`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ isPublished: !selectedQuiz.isPublished }),
+            });
+            const updated = await response.json();
+            setStudentQuizzes(prev =>
+              prev.map(q => q._id === selectedQuiz._id ? { ...q, isPublished: updated.isPublished } : q)
+            );
+            setSelectedQuiz(prev => prev ? { ...prev, isPublished: updated.isPublished } : prev);
+          } catch (err) {
+            console.error(err);
+            alert('Error updating publish status');
+          }
+        }}
+      >
+        {selectedQuiz.isPublished ? 'Unpublish' : 'Publish'}
+      </button>
+    </div>
+  </div>
+)}
+
       {activeModal && pendingQuiz && (
   <div className="quiz-popup-overlay" onClick={() => setActiveModal(null)}>
     <div className="quiz-popup" onClick={(e) => e.stopPropagation()}>

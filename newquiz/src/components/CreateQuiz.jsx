@@ -206,11 +206,12 @@ if (isAdmin && selectedBranches.length === 0) {
         data = await res.json();
       }
 
-      if (res.ok) {
+if (res.ok) {
   setQuizCreated(true);
   setTimeout(() => {
-    const path = isAdmin ? '/admin-courses' : '/courses';
     if (isEditing) {
+      // Editing: go to Courses (student) or AdminCourses (admin)
+      const path = isAdmin ? '/admin-courses' : '/courses';
       navigate(path, {
         state: {
           toast: 'Changes saved successfully!',
@@ -218,17 +219,28 @@ if (isAdmin && selectedBranches.length === 0) {
         },
       });
     } else {
-      navigate(path, {
-        state: {
-          refresh: true,
-          newQuizId: data?.quiz?._id || null,
-          saveConfirmation: 'Quiz created successfully!',
-        },
-      });
+      if (isAdmin) {
+        // Admin just created quiz → go to AdminCourses
+        navigate('/admin-courses', {
+          state: {
+            refresh: true,
+            saveConfirmation: 'Quiz created successfully!',
+          },
+        });
+      } else {
+navigate('/courses', {
+  state: {
+    refresh: true,
+    saveConfirmation: 'Quiz created successfully!',
+    newQuizId: data?.quiz?._id || null,
+    quizTitle: quizName,
+    customQuestions: questions,
+  },
+});
+      }
     }
   }, 1500);
-}
-else {
+} else {
         console.error('Quiz creation failed:', data);
         alert(data.message || 'Failed to save quiz.');
       }

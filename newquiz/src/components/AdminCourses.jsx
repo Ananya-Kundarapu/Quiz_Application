@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import '../styles/AdminCourses.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FiClipboard } from 'react-icons/fi';
+import Leaderboard from './Leaderboard';
 
 function AdminCourses() {
   const [myCourses, setMyCourses] = useState([]);
@@ -44,23 +45,37 @@ const contextMenuRef = useRef();
         });
 
         const data = await res.json();
-        if (res.ok) {
-          let quizzes = data.quizzes.map((q) => ({
-  id: q._id,
-  code: q.code,
-  name: q.title,
-  description: q.description || 'Custom quiz created by you.',
-  image: q.image || '/groupq.jpg',
-  isCustom: true,
-  creatorEmail: q.createdBy?.email || '',
-  questions: q.questions || [],
-  isPublished: q.isPublished || false,
-  startDate: q.startDate,
-  endDate: q.endDate,
-  timeLimit: q.timeLimit,
-  branches: q.branches || [],
-}));
+if (res.ok) {
+    let quizzes = data.quizzes.map((q) => ({
+      id: q._id,
+      code: q.code,
+      name: q.title,
+      description: q.description || 'Custom quiz created by you.',
+      image: q.image || '/groupq.jpg',
+      isCustom: true,
+      creatorEmail: q.createdBy?.email || '',
+      questions: q.questions || [],
+      isPublished: q.isPublished || false,
+      startDate: q.startDate,
+      endDate: q.endDate,
+      timeLimit: q.timeLimit,
+      branches: q.branches || [],
+      attemptsCount: 0,
+    }));
+    const token = sessionStorage.getItem('token');
+    const quizzesWithCounts = await Promise.all(quizzes.map(async (quiz) => {
+        const identifier = quiz.isCustom ? quiz.code : quiz.id; 
+        const analyticsRes = await fetch(`http://localhost:5000/api/results/${identifier}/analytics`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
 
+        if (analyticsRes.ok) {
+            const analyticsData = await analyticsRes.json();
+            return { ...quiz, attemptsCount: analyticsData.totalSubmissions || 0 };
+        } else {
+            return quiz;
+        }
+    }));
 
           if (newQuizId) {
             quizzes = quizzes.sort((a, b) => {
@@ -161,26 +176,6 @@ const contextMenuRef = useRef();
     });
   };
 
-  const sortedLeaderboard = (entries) => {
-    if (leaderboardSort === 'score') {
-      return [...entries].sort((a, b) => {
-        const aCorrect = a.answers.filter((ans, i) => ans === selectedQuiz.questions[i]?.correctAnswer).length;
-        const bCorrect = b.answers.filter((ans, i) => ans === selectedQuiz.questions[i]?.correctAnswer).length;
-        return bCorrect - aCorrect;
-      });
-    } else if (leaderboardSort === 'time') {
-      const parseTime = (t) => {
-        if (!t) return Infinity;
-        if (typeof t === 'number') return t;
-        const parts = t.split(':').map(Number);
-        if (parts.length === 2) return parts[0] * 60 + parts[1];
-        return Number(t) || Infinity;
-      };
-      return [...entries].sort((a, b) => parseTime(a.timeTaken) - parseTime(b.timeTaken));
-    }
-    return entries;
-  };
-
   const handleEditQuiz = () => {
     setShowPopup(false);
     navigate('/create-quiz', {
@@ -202,9 +197,12 @@ const contextMenuRef = useRef();
         </div>
       )}
 
-      {loading ? (
-        <div className="loading-spinner">Loading quizzes...</div>
-      ) : myCourses.length === 0 ? (
+{loading ? (
+  <div className="loading-container">
+    <div className="loading-spinner"></div>
+    <p className="loading-text">Loading quizzes...</p>
+  </div>
+) : myCourses.length === 0 ? (
         <div className="no-courses-container">
           <p className="no-courses-msg">No quizzes created yet.</p>
           <button className="create-quiz-btn" onClick={() => navigate('/create-quiz')}>
@@ -309,58 +307,29 @@ const contextMenuRef = useRef();
                 <FiClipboard className="copy-icon" onClick={() => copyToClipboard(selectedQuiz.code)} />
               </div>
             </div>
-            <h3>Leaderboard</h3>
-            {getAttempts(selectedQuiz.name).length > 0 && (
-              <div className="leaderboard-sort">
-                <label>Sort by: </label>
-                <select value={leaderboardSort} onChange={(e) => setLeaderboardSort(e.target.value)}>
-                  <option value="score">Score (High to Low)</option>
-                  <option value="time">Time Taken (Fastest First)</option>
-                </select>
-              </div>
-            )}
+<button
+  className="leaderboard-btn"
+  onClick={() => {
+    if (!selectedQuiz.id) {
+      alert("Quiz ID not found!");
+      return;
+    }
+if (selectedQuiz.isCustom) {
+  navigate(`/admin/leaderboard/custom/${selectedQuiz.code}`);
+} else {
+  navigate(`/admin/leaderboard/${selectedQuiz.id}`);
+}
+  }}
+>
+  View Leaderboard
+</button>
 
-            <div className="leaderboard" style={{ maxHeight: '300px', overflow: 'auto' }}>
-              {getAttempts(selectedQuiz.name).length === 0 ? (
-                <p style={{ fontStyle: 'italic', color: '#888' }}>No one has taken this quiz yet.</p>
-              ) : (
-                sortedLeaderboard(getAttempts(selectedQuiz.name)).map((entry, index) => {
-                  const correct = entry.answers.filter(
-                    (ans, i) => ans === selectedQuiz.questions[i]?.correctAnswer
-                  ).length;
 
-                  return (
-                    <div key={index} className="leaderboard-entry" style={{ borderBottom: '1px solid #ccc', padding: '8px 0' }}>
-                      <p><strong>Participant:</strong> {entry.name || 'Anonymous'}</p>
-                      <p><strong>Email:</strong> {entry.email || 'N/A'}</p>
-                      <p><strong>Score:</strong> {correct}/{selectedQuiz.questions.length}</p>
-                      <p><strong>Time Taken:</strong> {entry.timeTaken || 'N/A'}</p>
-
-                      <details style={{ marginTop: '6px' }}>
-                        <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>View Answers</summary>
-                        <div style={{ marginTop: '4px' }}>
-                          {selectedQuiz.questions.map((q, i) => {
-                            const answeredIndex = entry.answers[i];
-                            const answeredText = answeredIndex != null && q.options?.[answeredIndex] ? q.options[answeredIndex] : '';
-                            const correctIndex = q.correctAnswer;
-                            const correctText = q.options?.[correctIndex] || '';
-                            return (
-                              <div key={i} style={{ marginBottom: '6px' }}>
-                                <p><strong>{i + 1}:</strong> {q.questionText}</p>
-                                <p>Answered: <span style={{ color: answeredIndex === correctIndex ? 'green' : 'red' }}>{answeredText}</span></p>
-                                <p>Correct Answer: <span style={{ color: 'green' }}>{correctText}</span></p>
-                                <hr />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </details>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
+<p style={{ fontStyle: 'italic', color: '#555', marginTop: '8px', marginLeft: '18px' }}>
+  {selectedQuiz.attemptsCount && selectedQuiz.attemptsCount > 0
+    ? `${selectedQuiz.attemptsCount} ${selectedQuiz.attemptsCount === 1 ? 'student has' : 'students have'} taken this quiz.`
+    : 'No one has taken this quiz yet.'}
+</p>
            <button className="edit-btn" onClick={handleEditQuiz}>Edit Quiz</button>
 <br />
 <button
@@ -414,5 +383,4 @@ const contextMenuRef = useRef();
     </div>
   );
 }
-
 export default AdminCourses;

@@ -29,10 +29,10 @@ function AdminProfile() {
       return;
     }
 
-    const token = localStorage.getItem('token');
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    };
+const headers = user?.token
+  ? { Authorization: `Bearer ${user.token}` }
+  : {};
+
 
     fetch('/api/admin/total-users', { headers })
       .then(res => {
@@ -50,7 +50,7 @@ function AdminProfile() {
         setLoadingUsers(false);
       });
 
-    fetch('/api/admin/total-quizzes', { headers })
+      fetch(`${backendBase}/api/admin/total-quizzes`, { headers })
       .then(res => {
         if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         return res.json();
@@ -68,7 +68,7 @@ function AdminProfile() {
   }, [user]);
 
   const handleUsersClick = () => {
-    navigate('/admin/settings');
+    navigate('/admin-settings');
   };
 
   const handleCoursesClick = () => {

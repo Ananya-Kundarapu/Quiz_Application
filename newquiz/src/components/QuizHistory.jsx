@@ -145,7 +145,7 @@ const handleCardClick = (entry) => {
     <div className="main-content">
       {reviewQuiz && quizEntry ? (
         <div className="quiz-review-card">
-          <h2>Quiz Review - {location.state.quizTitle || quizEntry.course}</h2>
+<h2>Quiz Review - {location.state.quizTitle || quizEntry.course || "Custom Quiz"}</h2>
           <div className="chart-container">
             <Doughnut
   data={{
@@ -242,7 +242,9 @@ const correctCountCard = entry.answers ? entry.answers.filter(a => a.isCorrect).
 const totalQuestionsCard = entry.answers ? entry.answers.length : 0;
                 return (
                   <div key={index} className="quiz-card" onClick={() => handleCardClick(entry)}>
-                    <div className="quiz-card-header">{entry.quizTitle || entry.course}</div>
+<div className="quiz-card-header">
+  {entry.quizTitle || entry.course || "Custom Quiz"}
+</div>
                     <div className="quiz-card-body">
                       <div className="quiz-card-left">
 <p><strong>Date:</strong> {entry.startedAt ? formatDateTime(entry.startedAt) : 'N/A'}</p>

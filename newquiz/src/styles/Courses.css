@@ -212,7 +212,7 @@
   }
 }
 .loading-container {
-  grid-column: 1 / -1; /* span full width of grid */
+  grid-column: 1 / -1; 
   display: flex;
   flex-direction: column;
   align-items: center;

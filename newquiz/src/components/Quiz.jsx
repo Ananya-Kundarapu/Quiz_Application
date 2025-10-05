@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Quiz.css';
-import '../styles/LeaderboardPopup.css';
+import '../styles/Leaderboard.css';
 import defaultQuestionsData from '../components/DefaultQuiz';
 import { useAuth } from '../Context/AuthContext'; 
 import axios from 'axios'; 
 import { useMemo } from 'react'; 
+import { nanoid } from 'nanoid'; 
 
 function Quiz() {
 const location = useLocation();
@@ -16,39 +17,39 @@ const [result, setResult] = useState(null);
 const isCustomQuiz = location.state?.isCustom ?? false;
 const joinMode = location.state?.joinMode;
 const customQuestions = location.state?.questions;
-
-const persistedQuizId = localStorage.getItem("quizId");
-const persistedQuizCode = localStorage.getItem("quizCode");
-const persistedCourse = localStorage.getItem("quizCourse");
-
 const isDefaultQuiz = location.state?.isDefaultQuiz === true;
 
+const course =
+  location.state?.course ||
+  location.state?.quizTitle ||
+  location.state?.title ||
+  location.state?.name ||
+  "Untitled Quiz";
+
 const quizId = isDefaultQuiz
-  ? null
-  : (quizIdFromParams || location.state?.quizId || persistedQuizId);
-
+  ? null
+  : (isCustomQuiz && !location.state?.quizId)
+    ? undefined
+    : (quizIdFromParams || location.state?.quizId);
 const quizCode = isDefaultQuiz
-  ? null
-  : (location.state?.code || persistedQuizCode);
-if (isDefaultQuiz && location.state?.course) {
-  localStorage.setItem("quizCourse", location.state.course);
-}
+  ? null
+  : location.state?.code;
 
-const course = location.state?.course || persistedCourse || "General";
+const getStorageKeys = () => ({
+  currentQKey: `currentQ_${quizId || quizCode || course}`,
+  answersKey: `answers_${quizId || quizCode || course}`,
+});
+
+const clearQuizProgress = () => {
+    const { currentQKey, answersKey } = getStorageKeys();
+    console.log(`🧹 Clearing quiz progress for: ${currentQKey} and ${answersKey}`);
+    localStorage.removeItem(currentQKey);
+    localStorage.removeItem(answersKey);
+    localStorage.removeItem("quizCourse");
+};
+
 const currentQKey = `currentQ_${quizId || quizCode || course}`;
 const answersKey = `answers_${quizId || quizCode || course}`;
-
-useEffect(() => {
-  if (!isDefaultQuiz) {
-    if (quizId) localStorage.setItem("quizId", quizId);
-    if (quizCode) localStorage.setItem("quizCode", quizCode);
-    if (course) localStorage.setItem("quizCourse", course);
-  } else if (isDefaultQuiz && course) {
-    localStorage.setItem("quizCourse", course);
-    localStorage.removeItem("quizId");
-    localStorage.removeItem("quizCode");
-  }
-}, [isDefaultQuiz, quizId, quizCode, course]);
 
 let idKey;
 if (isDefaultQuiz) {
@@ -59,13 +60,6 @@ if (isDefaultQuiz) {
   idKey = `live_${quizId || quizCode}`;
 }
 
-useEffect(() => {
-  if (!isDefaultQuiz) {
-    if (location.state?.quizId) localStorage.setItem("quizId", location.state.quizId);
-    if (location.state?.code) localStorage.setItem("quizCode", location.state.code);
-    if (location.state?.course) localStorage.setItem("quizCourse", location.state.course);
-  }
-}, []);
 useEffect(() => {
     if (!token || authLoading) return;
   if (isDefaultQuiz) {
@@ -93,49 +87,77 @@ const [startTime, setStartTime] = useState(Date.now());
 const [showConfirmation, setShowConfirmation] = useState(false);
 const [showCongratulations, setShowCongratulations] = useState(false);
 const [showLeaderboard, setShowLeaderboard] = useState(false);
-const [quizTitle, setQuizTitle] = useState('');
+const [quizTitle, setQuizTitle] = useState(""); 
+
+useEffect(() => {
+  const requestFullscreen = async () => {
+    try {
+      const el = document.getElementById('quiz-root') || document.documentElement;
+      if (el.requestFullscreen) await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) await el.msRequestFullscreen();
+    } catch (err) {
+      console.warn("Fullscreen failed:", err);
+    }
+  };
+  setTimeout(requestFullscreen, 100);
+}, [quizId, quizCode, isCustomQuiz, isDefaultQuiz, token, authLoading]);
+
 const [badgesEarned, setBadgesEarned] = useState([]);
 
 useEffect(() => {
-  const handleBeforeUnload = (e) => {
-    e.preventDefault();
-    e.returnValue = "⚠️ If you refresh, you may lose your progress.";
-  };
-  window.addEventListener("beforeunload", handleBeforeUnload);
-  return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-}, []);
-useEffect(() => {
-  const handlePopState = (e) => {
-  const ok = window.confirm("⚠️ Do you want to exit the quiz? Your progress will be lost.");
-  if (!ok) {
-   window.history.pushState({ page: "quiz" }, "", window.location.href);
-  } else {
-    navigate("/courses", { replace: true });
-  }
-};
+  const handleBeforeUnload = (e) => {
+    if (!result) {
+      e.preventDefault();
+      e.returnValue = "⚠️ If you refresh, you may lose your progress.";
+     }
+  };
 
-  window.history.pushState({ page: "quiz" }, "", window.location.href);
-  window.addEventListener("popstate", handlePopState);
-  return () => window.removeEventListener("popstate", handlePopState);
-}, [navigate, currentQKey, answersKey]);
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  return () => {
+    if (!result) {
+      clearQuizProgress(); 
+      console.log("🧹 Progress cleared on component unmount/page exit.");
+    }
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [result]); 
+
+useEffect(() => {
+  const handlePopState = (e) => {
+    if (result) {
+      navigate('/profile', { replace: true });
+      return;
+    }
+    
+    if (e.state?.page === "quiz" || e.state === null) {
+      const ok = window.confirm("⚠️ Do you want to exit the quiz? Your progress will be lost.");
+      if (!ok) {
+        window.history.pushState({ page: "quiz" }, "", window.location.href);
+      } else {
+        clearQuizProgress(); 
+        navigate("/courses", { replace: true }); 
+      }
+    }
+  };
+
+  window.history.pushState({ page: "quiz" }, "", window.location.href);
+  window.addEventListener("popstate", handlePopState);
+  return () => window.removeEventListener("popstate", handlePopState);
+}, [navigate, result]); 
 
 const memoizedCurrentQKey = `currentQ_${quizId || quizCode || course}`;
 const memoizedAnswersKey = `answers_${quizId || quizCode || course}`;
 useEffect(() => {
-  if (!isDefaultQuiz) {
-    localStorage.setItem(memoizedAnswersKey, JSON.stringify(answers));
-    localStorage.setItem(memoizedCurrentQKey, currentQuestion);
-  }
-}, [answers, currentQuestion, isDefaultQuiz]); 
+  if (result || isDefaultQuiz) {
+    return;
+  }
+  localStorage.setItem(memoizedAnswersKey, JSON.stringify(answers));
+  localStorage.setItem(memoizedCurrentQKey, currentQuestion);
+}, [answers, currentQuestion, isDefaultQuiz, result]); 
 
   const [quizData, setQuizData] = useState(null);
   const [questions, setQuestions] = useState([]);
-useEffect(() => {
-  console.log('isCustomQuiz:', isCustomQuiz);
-  console.log('quizCode:', quizCode);
-  console.log('course:', course);
-  console.log('customQuestions:', customQuestions);
-}, [isCustomQuiz, quizCode, course, customQuestions]);
 
 const [fetchedQuestions, setFetchedQuestions] = useState([]);
 
@@ -156,10 +178,9 @@ const activeQuestions = useMemo(() => {
   return defaultQuestions;
 }, [customQuestions, fetchedQuestions, defaultQuestions]);
 
-if (isDefaultQuiz && !persistedCourse && location.state?.course) {
+if (isDefaultQuiz && !localStorage.getItem("quizCourse") && location.state?.course) {
   localStorage.setItem("quizCourse", location.state.course);
 }
-
   if (!activeQuestions || activeQuestions.length === 0) {
     console.log("🚫 [DEBUG] Early return - activeQuestions:", activeQuestions, "defaultQuestions:", defaultQuestions, "fetchedQuestions:", fetchedQuestions);
     return (
@@ -174,12 +195,11 @@ if (isDefaultQuiz && !persistedCourse && location.state?.course) {
   }
 
 useEffect(() => {
-const initTimer = (minutes) => {
-  const totalSeconds = minutes * 60;
-  const now = Date.now();
-  setStartTime(now);
-  setTimeLeft(totalSeconds);
-};
+  const initTimer = (minutes) => {
+    const totalSeconds = minutes * 60;
+    setStartTime(Date.now());
+    setTimeLeft(totalSeconds);
+  };
 
   const fetchLiveQuiz = async () => {
     if (!token || authLoading) return;
@@ -187,8 +207,6 @@ const initTimer = (minutes) => {
       const endpoint = quizCode
         ? `http://localhost:5000/api/quizzes/code/${quizCode}`
         : `http://localhost:5000/api/quizzes/${quizId}`;
-
-      console.log("🌐 Fetching quiz from:", endpoint);
 
       const res = await fetch(endpoint, {
         headers: {
@@ -198,51 +216,136 @@ const initTimer = (minutes) => {
         credentials: 'include',
       });
 
-      if (!res.ok) {
-        console.error("❌ Failed to fetch quiz", res.status);
-        return;
-      }
+      if (!res.ok) return;
 
       const data = await res.json();
       const quiz = data.quiz || data;
       setQuizData(quiz);
 
       if (Array.isArray(quiz.questions)) {
-const normalized = quiz.questions.map((q) => ({
-  _id: q._id, 
-  questionText: q.questionText || q.question || 'Untitled',
-  options: Array.isArray(q.options) ? q.options : [],
-  correctAnswer: typeof q.correctAnswer === "number" ? q.correctAnswer : -1,
-}));
+        const normalized = quiz.questions.map((q) => ({
+          _id: q._id,
+          questionText: q.questionText || q.question || 'Untitled',
+          options: Array.isArray(q.options) ? q.options : [],
+          correctAnswer: typeof q.correctAnswer === "number" ? q.correctAnswer : -1,
+        }));
 
         setFetchedQuestions(normalized);
-        setQuizTitle(quiz.title || '');
       }
+
+const resolvedTitle =
+  quiz?.title?.trim() ||
+  quiz?.name?.trim() ||
+  location.state?.quizTitle?.trim() || 
+  location.state?.title?.trim() ||
+  location.state?.name?.trim() ||
+  "Untitled Quiz";
+
+setQuizTitle(resolvedTitle);
 
       initTimer(Number(quiz.timeLimit) || 15);
     } catch (err) {
-      console.error("❌ Fetch error:", err);
+      console.error("Fetch live quiz error:", err);
     }
   };
 
-if (isDefaultQuiz) {
-  console.log("⚡ Using DEFAULT quiz:", course);
-  setFetchedQuestions([]); 
-  setQuizTitle(course);
-  initTimer(15);
+  if (isDefaultQuiz) {
+    setFetchedQuestions([]);
+    setQuizTitle(course);
+    initTimer(15);
 } else if (isCustomQuiz) {
-  console.log("⚡ Using CUSTOM quiz");
-  setFetchedQuestions(customQuestions || []);
-  initTimer(15); 
+
+const fetchCustomQuiz = async () => {
+  console.log('🔍 Fetching custom quiz - location.state:', location.state);
+
+  if (!quizId) {
+    setFetchedQuestions(customQuestions || []);
+    const resolvedTitle =
+      location.state?.quizTitle?.trim() || 
+      location.state?.title?.trim() ||
+      location.state?.name?.trim() ||
+      course || 
+      'Untitled Quiz';
+    setQuizTitle(resolvedTitle);
+    console.log('✅ Just-created quiz title resolved to:', resolvedTitle); 
+    const timerMinutes = Number(location.state?.timeLimit || 15);
+    initTimer(timerMinutes);
+  } else {
+    try {
+      console.log(`🔍 Fetching saved custom quiz ID: ${quizId}`);
+      const res = await axios.get(`http://localhost:5000/api/quizzes/${quizId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+      const quiz = res.data.quiz || res.data;
+      setQuizData(quiz);
+
+      const resolvedTitle =
+        quiz?.title?.trim() ||
+        quiz?.name?.trim() ||
+        location.state?.quizTitle?.trim() || 
+        location.state?.title?.trim() ||
+        location.state?.name?.trim() ||
+        course ||
+        'Untitled Quiz';
+      setQuizTitle(resolvedTitle);
+      console.log(`✅ Saved quiz title resolved to: ${resolvedTitle}`);
+
+      if (Array.isArray(quiz.questions)) {
+        setFetchedQuestions(
+          quiz.questions.map(q => ({
+            _id: q._id,
+            questionText: q.questionText || q.question || 'Untitled',
+            options: Array.isArray(q.options) ? q.options : [],
+            correctAnswer: q.correctAnswer,
+          }))
+        );
+      } else {
+        console.warn('⚠️ Fetched quiz is missing questions array.');
+      }
+
+      const timerMinutes = Number(location.state?.timeLimit || quiz.timeLimit || 15);
+      initTimer(timerMinutes);
+    } catch (err) {
+      console.error('❌ API Fetch Error for Custom Quiz:', err.response?.data || err.message);
+      setFetchedQuestions(customQuestions || []);
+
+      const resolvedTitle =
+        location.state?.quizTitle?.trim() ||
+        location.state?.title?.trim() ||
+        location.state?.name?.trim() ||
+        course ||
+        'Untitled Quiz';
+      setQuizTitle(resolvedTitle);
+      console.log('✅ Fallback title on error:', resolvedTitle);
+
+      const timerMinutes = Number(location.state?.timeLimit || 15);
+      initTimer(timerMinutes);
+    }
+  }
+};
+  fetchCustomQuiz();
+
 } else if (quizId || quizCode) {
-  console.log("⚡ Using LIVE quiz, id/code:", quizId, quizCode);
-  fetchLiveQuiz();
-}
+    fetchLiveQuiz();
+  }
+
+  const requestFullscreen = async () => {
+    try {
+      const el = document.getElementById('quiz-root') || document.documentElement;
+      if (el.requestFullscreen) await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) await el.msRequestFullscreen();
+    } catch (err) {
+      console.warn("Fullscreen failed:", err);
+    }
+  };
+  setTimeout(requestFullscreen, 100);
+
 }, [isDefaultQuiz, isCustomQuiz, quizId, quizCode, token, authLoading]);
 
 useEffect(() => {
   if (showCongratulations || showLeaderboard || timeLeft === null) return;
-
   const timer = setInterval(() => {
     setTimeLeft(prev => {
       if (prev === null) return prev;
@@ -336,9 +439,9 @@ const handleSubmit = async () => {
     console.error('Failed to exit full-screen mode:', error);
   }
 
-const duration = Math.floor((Date.now() - startTime) / 1000);
+  const duration = Math.floor((Date.now() - startTime) / 1000);
 
-if (!quizId) {
+if (isCustomQuiz || isDefaultQuiz || !quizId) {
   const score = answers.reduce((acc, ans, idx) => {
     const correct = activeQuestions[idx].correctAnswer;
     if (typeof correct === "number") {
@@ -355,101 +458,143 @@ if (!quizId) {
   const badges = [];
   if (percentage === 100) badges.push('winner');
   if (percentage >= 80) badges.push('powerPlayer');
-  if ((Date.now() - startTime) / 1000 / activeQuestions.length < 30) badges.push('speedster');
+  if (duration / activeQuestions.length < 30) badges.push('speedster');
   if (percentage >= 30 && percentage < 50) badges.push('lucky');
 
-const resultObj = {
-  score,
-  total: activeQuestions.length,
-  duration,
-  startTime,
-  submittedAt: Date.now(),
-  badges, 
-  questions: activeQuestions.map((q, idx) => ({
-    questionText: q.questionText || q.question || 'Untitled',
-    options: q.options,
-    correctAnswer: typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer,
-    yourAnswer: answers[idx] || null,
-    isCorrect: answers[idx] === (typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer),
-  }))
-};
+  const resultObj = {
+    score,
+    total: activeQuestions.length,
+    duration,
+    startTime,
+    submittedAt: new Date(),
+    badges,
+    questions: activeQuestions.map((q, idx) => ({
+      questionText: q.questionText || q.question || 'Untitled',
+      options: q.options,
+      correctAnswer: typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer,
+      yourAnswer: answers[idx] || null,
+      isCorrect: answers[idx] === (typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer),
+    })),
+  };
 
   setResult(resultObj);
-  setBadgesEarned(badges); // ✅ Add this
+  setBadgesEarned(badges);
+const postBody = {
+     quizTitle: quizTitle,
+    code: quizData?.code || localStorage.getItem("lastCustomQuizCode"),
+     course: isDefaultQuiz ? course : quizTitle,
+     answers: activeQuestions.map((q, idx) => {
+        const correct = typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer;
+        const selected = answers[idx] ?? null;
+        return {
+            questionText: q.questionText || "Untitled",
+            selectedAnswer: selected, 
+            correctAnswer: correct,
+            isCorrect: selected === correct,
+        };
+    }),
+    score,
+    duration,
+    startedAt: new Date(startTime),
+    submittedAt: new Date(),
+    badges,
+};
 
-  if (token) {
-    axios.post(`http://localhost:5000/api/results/custom`, {
-      quizId: quizId || null, 
-      course,
+try {
+if (!token) {
+  console.error("❌ Cannot submit custom/default quiz: missing user token");
+  return;
+}
+
+const res = await axios.post(
+  `http://localhost:5000/api/results/custom/submit`,
+  postBody,
+  {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`, // ensure token is included
+    },
+  }
+);
+  console.log("✅ Custom/default quiz successfully submitted", res.data);
+} catch (err) {
+  console.error("❌ Failed to submit custom/default quiz:", err.response?.data || err.message);
+  console.error("❌ Failed to submit custom/default quiz:", err); // Log the full error object
+}
+  setShowCongratulations(true);
+  clearQuizProgress();
+  return;
+}
+
+  try {
+    const payload = {
       answers: activeQuestions.map((q, idx) => {
         const selectedIndex = q.options.indexOf(answers[idx]);
         return {
-          questionText: q.questionText || q.question,
-          correctAnswer: typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer,
-          selectedAnswer: answers[idx] || null,
-          isCorrect: typeof q.correctAnswer === "number"
-            ? selectedIndex === q.correctAnswer
-            : answers[idx] === q.correctAnswer
+          questionId: q._id,
+          selectedOption: selectedIndex >= 0 ? selectedIndex : null,
         };
       }),
-      score,
-      total: activeQuestions.length,
       duration,
-      startedAt: new Date(startTime),
+      startTime,
       submittedAt: new Date(),
-      badges, // ✅ Add badges here too
-    }, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => console.log("✅ Custom/default quiz saved:", res.data))
-    .catch(err => console.error("❌ Failed to save custom/default quiz:", err));
-  }
+    };
 
-  setShowCongratulations(true);
+const submitQuizId = quizData?._id;
+if (!submitQuizId) {
+  console.error("❌ Cannot submit quiz: missing quiz ID");
   return;
 }
-  try {
-const payload = {
-  answers: activeQuestions.map((q, idx) => {
-    const selectedIndex = q.options.indexOf(answers[idx]);
-    return {
-      questionId: q._id,
-      selectedOption: selectedIndex >= 0 ? selectedIndex : null,
-    };
-  }),
-  duration,
-  startTime,
-  submittedAt: new Date(),
-};
+
+if (!token) {
+  console.error("❌ Cannot submit quiz: missing user token");
+  return;
+}
+
 const res = await axios.post(
-  `http://localhost:5000/api/results/${quizData._id}/submit`,
-  payload,
-  { headers: { Authorization: `Bearer ${token}` } }
+  `http://localhost:5000/api/results/${submitQuizId}/submit`,
+  {
+    answers: payload.answers.map(a => ({
+      questionId: a.questionId,
+      selectedOption: a.selectedOption,
+    })),
+    duration: payload.duration,
+    startedAt: new Date(payload.startTime),
+    submittedAt: new Date(),
+  },
+  {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`, // ensure token is included
+    },
+  }
 );
 
-const serverResult = res.data.result;
-const resultObj = {
-  score: serverResult.score,
-  total: activeQuestions.length,
-  duration,
-  startTime,
-  submittedAt: new Date(),
-  questions: activeQuestions.map((q, idx) => ({
-    questionText: q.questionText || q.question || 'Untitled',
-    options: q.options,
-    correctAnswer: typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer,
-    yourAnswer: answers[idx] || null,
-    isCorrect: answers[idx] === (typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer),
-  }))
-};
+    const serverResult = res.data.result;
+    const resultObj = {
+      score: serverResult.score,
+      total: activeQuestions.length,
+      duration,
+      startTime,
+      submittedAt: new Date(),
+      questions: activeQuestions.map((q, idx) => ({
+        questionText: q.questionText || q.question || 'Untitled',
+        options: q.options,
+        correctAnswer: typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer,
+        yourAnswer: answers[idx] || null,
+        isCorrect: answers[idx] === (typeof q.correctAnswer === "number" ? q.options[q.correctAnswer] : q.correctAnswer),
+      })),
+    };
 
-setResult(resultObj);
-setBadgesEarned(serverResult.badges || []);
-setShowCongratulations(true);
+    setResult(resultObj);
+    setBadgesEarned(serverResult.badges || []);
+    setShowCongratulations(true);
+    clearQuizProgress();
   } catch (err) {
     console.error("❌ Quiz submission failed:", err.response?.data || err.message);
   }
 };
+
 const handleReviewQuiz = () => {
   if (!result) return;
 
@@ -465,7 +610,8 @@ navigate('/quiz-history', {
   state: {
     reviewQuiz: true,
     quizEntry: {
-      course,
+      quizTitle: quizData?.title || location.state?.quizTitle || course || "Quiz",
+      course: quizData?.course || location.state?.course || course,
       answers: result.questions.map((q, i) => ({
         questionText: q.questionText,
         selectedAnswer: answers[i],
@@ -482,9 +628,12 @@ navigate('/quiz-history', {
 };
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${s % 60 < 10 ? '0' : ''}${s % 60}`;
-const totalTime = (quizData?.timeLimit ? Number(quizData.timeLimit) : 15) * 60;
-const progress = timeLeft !== null ? (timeLeft / totalTime) * 360 : 0;
+const timerLimit = isCustomQuiz
+  ? Number(location.state?.timeLimit || quizData?.timeLimit || 15)
+  : Number(quizData?.timeLimit || 15);
 
+const totalTime = timerLimit * 60;
+const progress = timeLeft !== null ? (timeLeft / totalTime) * 360 : 0;
 
   if (showLeaderboard) {
     const leaderboard = JSON.parse(localStorage.getItem(`leaderboard_${quizCode}`) || '[]');
@@ -514,7 +663,7 @@ const progress = timeLeft !== null ? (timeLeft / totalTime) * 360 : 0;
   }
 if (showCongratulations && result) {
   const percentage = Math.round((result.score / result.total) * 100);
-  const passed = percentage >= 30; // ✅ 30% pass mark
+  const passed = percentage >= 30;
 
   return (
     <div className="confirmation">
@@ -575,7 +724,7 @@ if (showCongratulations && result) {
   return (
     <div className="quiz-page">
       <img src="/qlo.jpg" className="logo-top-left" width="220px" height="68px" />
-      <h2 style={{ color: '#FFFFFF' }}>{quizTitle || course}</h2>
+      <h2 style={{ color: '#FFFFFF' }}>{quizTitle || quizData?.title || quizData?.name || course}</h2>
       <div className="quiz-container">
         <div className="quiz">
           <div className="quiz-header">

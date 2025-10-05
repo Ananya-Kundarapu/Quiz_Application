@@ -35,8 +35,9 @@ import CustomQuizReview from './components/CustomQuizReview.jsx';
 import ReviewCustomQuiz from './components/ReviewCustomQuiz.jsx';
 import AdminProfile from './components/AdminProfile.jsx';
 import AdminSettings from './components/AdminSettings.jsx';
-
-import { useAuth } from './Context/AuthContext'; // ✅ Context hook
+import PrivacyPolicy from './components/PrivacyPolicy.jsx';
+import Leaderboard from './components/Leaderboard.jsx';
+import { useAuth } from './Context/AuthContext'; 
 import './index.css';
 import './App.css';
 
@@ -60,7 +61,7 @@ useEffect(() => {
   const isAdminPage = location.pathname.startsWith('/admin');
   const userRole = user?.role || 'Student';
 const handleLogout = async () => {
-  setLoggingOut(true); // show logging out notification
+  setLoggingOut(true); 
 
   try {
     await fetch('/api/auth/logout', {
@@ -68,12 +69,11 @@ const handleLogout = async () => {
       credentials: 'include',
     });
 
-    // Keep header/sidebar visible for 3 seconds
     setTimeout(() => {
-      logout(); // clears user context
+      logout();
       setLoggingOut(false);
-      navigate('/', { replace: true }); // go to Home
-    }, 1500);// 3 seconds
+      navigate('/', { replace: true }); 
+    }, 1500);
   } catch (error) {
     console.error('Logout failed:', error);
     setLoggingOut(false);
@@ -96,6 +96,12 @@ const handleLogout = async () => {
     }
     return children;
   };
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/signup" state={{ message: 'Please sign up to continue.' }} replace />;
+  return children;
+};
 
 if (loading) return null;
 
@@ -172,27 +178,25 @@ if (loading) return null;
           <Route path="/signup" element={<Signup />} />
           <Route path="/registration" element={<Registration />} />
           <Route path="/join-test" element={<JoinTest />} />
-
           <Route path="/profile" element={
             <ProtectedStudentRoute>
                   <Profile />
             </ProtectedStudentRoute>
           } />
-          <Route path="/courses" element={<ProtectedStudentRoute><Courses /></ProtectedStudentRoute>} />
+<Route path="/leaderboard/:quizIdOrCustom/:quizCodeUrl?" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />          <Route path="/courses" element={<ProtectedStudentRoute><Courses /></ProtectedStudentRoute>} />
           <Route path="/quiz/:quizId" element={<ProtectedStudentRoute><Quiz /></ProtectedStudentRoute>} />
           <Route path="/quiz-history" element={<ProtectedStudentRoute><QuizHistory /></ProtectedStudentRoute>} />
           <Route path="/settings" element={<ProtectedStudentRoute><Settings /></ProtectedStudentRoute>} />
           <Route path="/create-quiz" element={<ProtectedStudentRoute><CreateQuiz /></ProtectedStudentRoute>} />
           <Route path="/custom-quiz-review" element={<ProtectedStudentRoute><CustomQuizReview /></ProtectedStudentRoute>} />
           <Route path="/review-custom" element={<ProtectedStudentRoute><ReviewCustomQuiz /></ProtectedStudentRoute>} />
-
+          <Route path="/privacy-policy" element={<ProtectedStudentRoute><PrivacyPolicy /></ProtectedStudentRoute>} />
           {/* Admin routes */}
           <Route path="/admin-profile" element={<ProtectedAdminRoute><AdminProfile /></ProtectedAdminRoute>} />
           <Route path="/admin-courses" element={<ProtectedAdminRoute><AdminCourses /></ProtectedAdminRoute>} />
           <Route path="/admin-settings" element={<ProtectedAdminRoute><AdminSettings /></ProtectedAdminRoute>} />
           <Route path="/admin/create-quiz" element={<ProtectedAdminRoute><CreateQuiz /></ProtectedAdminRoute>} />
-
-        </Routes>
+<Route path="/admin/leaderboard/:quizIdOrCustom/:quizCodeUrl?" element={<ProtectedAdminRoute><Leaderboard /></ProtectedAdminRoute>} />        </Routes>
       </div>
     </div>
   );

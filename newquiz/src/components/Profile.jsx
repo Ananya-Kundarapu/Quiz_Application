@@ -86,32 +86,43 @@ const handleClipboardClick = async () => {
     }
   };
 
-  const handleJoinQuiz = async () => {
-    if (!joinCode.trim()) {
-      setJoinError('Please enter a quiz code.');
-      return;
-    }
-    setJoinError('');
-    setIsLoading(true);
-    try {
-      const res = await fetch(`http://localhost:5000/api/quizzes/${joinCode.trim().toUpperCase()}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Invalid code');
+const handleJoinQuiz = async () => {
+  if (!joinCode.trim()) {
+    setJoinError('Please enter a quiz code.');
+    return;
+  }
+  setJoinError('');
+  setIsLoading(true);
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('You must be logged in to join a quiz.');
 
-      navigate(`/quiz/${data.name}`, {
-        state: {
-          isCustom: true,
-          code: data.code,
-          joinMode: true,
-          questions: data.questions,
-          timeLimit: data.timer,
-        },
-      });
-    } catch (err) {
-      setJoinError(err.message);
-      setIsLoading(false);
-    }
-  };
+    const res = await fetch(
+      `http://localhost:5000/api/quizzes/code/${joinCode.trim().toUpperCase()}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Invalid code');
+    const quizData = data.quiz;
+
+    navigate(`/quiz/${quizData.title}`, {
+      state: {
+        isCustom: true,
+        code: quizData.code,
+        joinMode: true,
+        quizTitle: quizData.title || quizData.name || "Custom Quiz", 
+        questions: quizData.questions, 
+        timeLimit: quizData.timeLimit,
+      },
+    });
+  } catch (err) {
+    setJoinError(err.message);
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="profile">
