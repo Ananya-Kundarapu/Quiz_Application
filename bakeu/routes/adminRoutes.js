@@ -18,7 +18,7 @@ router.get('/total-users', async (req, res) => {
 });
 router.get('/total-quizzes', auth, async (req, res) => {
   try {
-    const adminEmail = req.user.email; // ✅ Decoded from token
+    const adminEmail = req.user.email;
 
 const count = await Quiz.countDocuments({ creatorEmail: adminEmail });
     res.json({ count });

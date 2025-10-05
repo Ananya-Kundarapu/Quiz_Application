@@ -8,6 +8,8 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
+router.use(express.json({ limit: '10mb' })); 
+
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

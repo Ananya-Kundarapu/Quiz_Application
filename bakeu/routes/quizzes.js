@@ -3,7 +3,9 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Quiz = require('../models/Quiz');
 const Question = require('../models/Question');
+const mongoose = require('mongoose');
 const { nanoid } = require('nanoid');
+router.use(express.json({ limit: '10mb' }));
 
 router.post('/create', auth, async (req, res) => {
   try {
@@ -26,19 +28,22 @@ router.post('/create', auth, async (req, res) => {
       resolvedBranches = [branch.trim()];
     }
 
-    const newQuiz = new Quiz({
-      title,
-      description,
-      timeLimit,
-      code: nanoid(6).toUpperCase(),
-      createdBy: req.user.id,
-      creatorEmail: req.user.email,
-      branches: resolvedBranches,
-      image: image || '/defaultlive.jpg',
-      isPublished: false,
-      startDate,
-      endDate,
-    });
+const normalizedRole = (req.user.role || 'student').toLowerCase();
+
+const newQuiz = new Quiz({
+  title,
+  description,
+  timeLimit,
+  code: nanoid(6).toUpperCase(),
+  createdBy: req.user.id,
+  creatorEmail: req.user.email,
+  creatorRole: normalizedRole,  
+  branches: normalizedRole === 'admin' ? resolvedBranches : ['All'], // use normalized role
+  image: image || '/defaultlive.jpg',
+  isPublished: false,
+  startDate,
+  endDate,
+});
 
     await newQuiz.save();
 
@@ -47,10 +52,8 @@ router.post('/create', auth, async (req, res) => {
         const newQuestion = new Question({
           quizId: newQuiz._id,
           questionText: q.questionText,
-options: Array.isArray(q.options) && q.options.length > 0
-  ? q.options
-  : [q.option1, q.option2, q.option3, q.option4].filter(Boolean),
-          correctAnswer: q.correctAnswer,
+options: Array.isArray(q.options) ? q.options : [],
+correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : q.options.findIndex(opt => opt === q.correctAnswer),
           image: q.image || null,
         });
         return newQuestion.save();
@@ -69,47 +72,6 @@ options: Array.isArray(q.options) && q.options.length > 0
   }
 });
 
-router.get('/live', auth, async (req, res) => {
-  try {
-    const studentBranch = req.user.branch;
-    if (!studentBranch) {
-      return res.status(400).json({ message: 'Student branch not specified' });
-    }
-
-    const now = new Date();
-
-    const quizzes = await Quiz.find({
-  isPublished: true,
-  branches: { $in: [studentBranch, 'All'] },
-  $or: [
-    { startDate: { $exists: false }, endDate: { $exists: false } },
-    { startDate: { $lte: now }, endDate: { $gte: now } },
-    { startDate: { $lte: now }, endDate: { $exists: false } },
-  ],
-})
-  .populate('questions')  // 👈 add this line
-  .sort({ createdAt: -1 });
-
-
-    const formatted = quizzes.map((quiz) => ({
-      _id: quiz._id,
-      code: quiz.code,
-      name: quiz.title,
-      description: quiz.description,
-      timeLimit: quiz.timeLimit,
-      image: quiz.image || '/defaultlive.jpg',
-      questions: quiz.questions,
-      startDate: quiz.startDate, // Added to include start date
-      endDate: quiz.endDate,     // Added to include end date
-    }));
-
-    res.json(formatted);
-  } catch (err) {
-    console.error('❌ Error fetching live quizzes:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 router.get('/my-quizzes', auth, async (req, res) => {
   try {
     const quizzes = await Quiz.find({ createdBy: req.user.id }).sort({ createdAt: -1 });
@@ -122,28 +84,27 @@ router.get('/my-quizzes', auth, async (req, res) => {
 // ✅ NEW: Get quiz by code for students (includes populated questions)
 router.get('/code/:code', auth, async (req, res) => {
   try {
-    const quiz = await Quiz.findOne({ code: req.params.code, isPublished: true })
-      .populate('questions');
+const quiz = await Quiz.findOne({ code: req.params.code, isPublished: true })
+  .populate('questions');
 
-    if (!quiz) {
-      return res.status(404).json({ message: 'Quiz not found or not published' });
-    }
+if (!quiz) {
+  return res.status(404).json({ message: 'Quiz not found or not published' });
+}
 
-    // Optional: Check if the student's branch matches
-    const studentBranch = req.user.branch;
-    if (!quiz.branches.includes('All') && !quiz.branches.includes(studentBranch)) {
-      return res.status(403).json({ message: 'You are not allowed to access this quiz' });
-    }
+if (quiz.creatorRole === 'admin') {
+  const studentBranch = req.user.branch;
+  if (!quiz.branches.includes('All') && !quiz.branches.includes(studentBranch)) {
+    return res.status(403).json({ message: 'You are not allowed to access this quiz' });
+  }
 
-    // Optional: Enforce date check
-    const now = new Date();
-    if (
-      (quiz.startDate && quiz.startDate > now) ||
-      (quiz.endDate && quiz.endDate < now)
-    ) {
-      return res.status(403).json({ message: 'This quiz is not currently available' });
-    }
-
+  const now = new Date();
+  if (
+    (quiz.startDate && quiz.startDate > now) ||
+    (quiz.endDate && quiz.endDate < now)
+  ) {
+    return res.status(403).json({ message: 'This quiz is not currently available' });
+  }
+}
     res.json({ quiz });
   } catch (err) {
     console.error('❌ Error fetching quiz by code:', err);
@@ -151,44 +112,112 @@ router.get('/code/:code', auth, async (req, res) => {
   }
 });
 
-router.get('/:quizId', auth, async (req, res) => {
+router.get('/student-live-quizzes', auth, async (req, res) => {
+  console.log('📝 Request to /student-live-quizzes received. User:', req.user);
   try {
-    const quizId = req.params.quizId;
-    const quiz = await Quiz.findById(quizId).populate('questions').exec();
-
-    if (!quiz) {
-      return res.status(404).json({ message: 'Quiz not found' });
-    }
-
-    // ✅ Allow admins or creators full access (edit mode)
-    if (req.user.role === 'admin' || quiz.createdBy.toString() === req.user.id) {
-      return res.json(quiz);
-    }
-
-    // 🚫 Student restrictions
-    if (!quiz.isPublished) {
-      return res.status(403).json({ message: 'Quiz is not published' });
-    }
-
-    const studentBranch = req.user.branch;
-    if (!quiz.branches.includes('All') && !quiz.branches.includes(studentBranch)) {
-      return res.status(403).json({ message: 'You are not allowed to access this quiz' });
-    }
-
+    const studentBranch = String(req.user.branch).toUpperCase();
+    
+    console.log('Querying for studentBranch:', studentBranch); // ✅ ADD THIS LINE
     const now = new Date();
-    if ((quiz.startDate && quiz.startDate > now) || (quiz.endDate && quiz.endDate < now)) {
-      return res.status(403).json({ message: 'This quiz is not currently available' });
-    }
+    const quizzes = await Quiz.find({
+      creatorRole: 'admin',
+      isPublished: true,
+      branches: { $in: [studentBranch, 'All'] },
+      $or: [
+        { startDate: { $exists: false }, endDate: { $exists: false } },
+        { startDate: { $lte: now }, endDate: { $gte: now } },
+        { startDate: { $lte: now }, endDate: { $exists: false } },
+      ],
+    }).populate('questions').sort({ createdAt: -1 });
 
-    res.json(quiz);
-  } catch (err) {
-    console.error('❌ Error fetching quiz details:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
+    const formatted = quizzes.map((quiz) => ({
+      _id: quiz._id,
+      code: quiz.code,
+      name: quiz.title,
+      description: quiz.description,
+      timeLimit: quiz.timeLimit,
+      image: quiz.image || '/defaultlive.jpg',
+      questions: quiz.questions,
+      startDate: quiz.startDate,
+      endDate: quiz.endDate,
+    }));
+    res.json(formatted);
+} catch (err) {
+  console.error('❌ Error in /student-live-quizzes:', err);
+  res.status(500).json({ message: 'Server error', error: err.message });
+}
 });
 
-// Update quiz
-// Update quiz
+router.get('/my-custom-quizzes', auth, async (req, res) => {
+  console.log('📝 Request to /my-custom-quizzes received. User:', req.user);
+  try {
+    const quizzes = await Quiz.find({ 
+      createdBy: req.user.id,
+      creatorRole: { $ne: 'admin' } 
+    }).populate('questions').sort({ createdAt: -1 });
+    
+const formatted = quizzes.map((quiz) => ({
+  _id: quiz._id,
+  code: quiz.code,
+  name: quiz.title,
+  description: quiz.description,
+  timeLimit: quiz.timeLimit,
+  image: quiz.image || '/groupq.jpg',
+  questions: quiz.questions || [],
+  isCustom: true,
+  isPublished: quiz.isPublished,
+  creatorEmail: quiz.creatorEmail,
+  course: quiz.title, 
+  startDate: quiz.startDate ? new Date(quiz.startDate) : null,
+  endDate: quiz.endDate ? new Date(quiz.endDate) : null,
+}));
+
+    res.json(formatted);
+} catch (err) {
+  console.error('❌ Error in /my-custom-quizzes:', err);
+  res.status(500).json({ message: 'Server error', error: err.message });
+}
+});
+
+router.get('/:quizId', auth, async (req, res) => {
+  try {
+    const quizId = req.params.quizId;
+
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({ message: 'Invalid quiz ID' });
+    }
+
+    const quiz = await Quiz.findById(quizId).populate('questions').exec();
+
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+
+    if (req.user.role === 'admin' || quiz.createdBy.toString() === req.user.id) {
+      return res.json(quiz);
+    }
+
+    if (!quiz.isPublished) {
+      return res.status(403).json({ message: 'Quiz is not published' });
+    }
+
+const studentBranch = String(req.user.branch).trim().toLowerCase();
+    if (!quiz.branches.includes('All') && !quiz.branches.includes(studentBranch)) {
+      return res.status(403).json({ message: 'You are not allowed to access this quiz' });
+    }
+
+    const now = new Date();
+    if ((quiz.startDate && quiz.startDate > now) || (quiz.endDate && quiz.endDate < now)) {
+      return res.status(403).json({ message: 'This quiz is not currently available' });
+    }
+
+    res.json(quiz);
+  } catch (err) {
+    console.error('❌ Error fetching quiz details:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.put('/:id', auth, async (req, res) => {
   try {
     const quizId = req.params.id;
@@ -237,17 +266,14 @@ router.put('/:id', auth, async (req, res) => {
     // Save new questions
     const savedQuestions = await Promise.all(
       questions.map((q) => {
-        const options = Array.isArray(q.options) && q.options.length > 0
-          ? q.options
-          : [q.option1, q.option2, q.option3, q.option4].filter(Boolean);
-
-        return new Question({
-          quizId,
-          questionText: q.questionText,
-          options,
-          correctAnswer: q.correctAnswer,
-          image: q.image || null,
-        }).save();
+const options = Array.isArray(q.options) ? q.options : [];
+return new Question({
+  quizId,
+  questionText: q.questionText,
+  options,
+  correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : q.options.findIndex(opt => opt === q.correctAnswer),
+  image: q.image || null,
+}).save();
       })
     );
 
