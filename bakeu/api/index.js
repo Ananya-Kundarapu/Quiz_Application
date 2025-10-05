@@ -12,25 +12,11 @@ const adminRoutes = require('../routes/adminRoutes');
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
-const allowedOrigins = [
-  'http://localhost:5173', 
-  'http://localhost:5174', 
-  process.env.FRONTEND_URL
-].filter(Boolean); 
 
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-        if (origin.endsWith('.vercel.app')) {
-        return callback(null, true);
-    }
-    callback(new Error(`CORS policy blocks ${origin}`));
-  },
-  credentials: true,
+  origin: '*', 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS','PATCH'],
+  credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
